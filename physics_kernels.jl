@@ -108,3 +108,12 @@ function doppler_broaden_fast(E_target_arr, E_raw, XS_raw, T)
     return XS_broadened
 end
 
+"""
+    pure_maxwellian(E, T)
+Pure Maxwell-Boltzmann thermal flux distribution.
+Used for thermal g-factor calculations.
+"""
+function pure_maxwellian(E, T)
+    return (E / (k_B * T)^2) * exp(-E / (k_B * T))
+end
+
