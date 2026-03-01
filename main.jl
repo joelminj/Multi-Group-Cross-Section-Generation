@@ -10,7 +10,7 @@ gr()
 include("data_utils.jl")
 include("physics_kernels.jl")
 include("analysis.jl")
-include("plots.jl")
+include("plot_data.jl")
 
 
 # Parameters
