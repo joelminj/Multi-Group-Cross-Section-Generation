@@ -1,3 +1,5 @@
+# RP Activity 2
+# Author: Joel Minj
 
 # Plotting functions for data
 
