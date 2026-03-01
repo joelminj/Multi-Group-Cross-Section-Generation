@@ -1,3 +1,6 @@
+# RP Activity 2
+# Author: Joel Minj
+
 # Physics calculations: Doppler broadening, flux spectra
 
 # Physical Constants for kernel
@@ -55,3 +58,53 @@ function weighting_spectrum(E, T_n=573.15; isotope="Pu239")
         return D * watt
     end
 end
+
+"""
+    doppler_broaden_fast(E_target_arr, E_raw, XS_raw, T)
+Optimized Doppler broadening using the SIGMA1 kernel.
+Only integrates over ±4 Doppler widths around each target energy.
+
+This is much faster than full broadening but still accurate for resonances.
+"""
+function doppler_broaden_fast(E_target_arr, E_raw, XS_raw, T)
+    XS_broadened = zeros(length(E_target_arr))
+    
+    for (j, E) in enumerate(E_target_arr)
+        Delta = sqrt(4 * k_B * T * E / A_Pu239)
+        
+        # Define integration window: ±8 Doppler widths
+        dE_approx = 8 * Delta * sqrt(E)
+        E_min = max(1e-5, E - dE_approx)
+        E_max = E + dE_approx
+        
+        # Find array indices for this window
+        i_min = searchsortedfirst(E_raw, E_min)
+        i_max = searchsortedlast(E_raw, E_max)
+        
+        if i_max > i_min
+            integral = 0.0
+            # Trapezoidal integration within the window
+            for k in 1:(i_max - i_min)
+                Ep1, Ep2 = E_raw[i_min + k - 1], E_raw[i_min + k]
+                XS1, XS2 = XS_raw[i_min + k - 1], XS_raw[i_min + k]
+                
+                term1_1 = exp(-((sqrt(E) - sqrt(Ep1))^2) / (Delta^2))
+                term2_1 = exp(-((sqrt(E) + sqrt(Ep1))^2) / (Delta^2))
+                y1 = XS1 * (Ep1 / E) * (term1_1 - term2_1)
+                
+                term1_2 = exp(-((sqrt(E) - sqrt(Ep2))^2) / (Delta^2))
+                term2_2 = exp(-((sqrt(E) + sqrt(Ep2))^2) / (Delta^2))
+                y2 = XS2 * (Ep2 / E) * (term1_2 - term2_2)
+                
+                integral += 0.5 * (Ep2 - Ep1) * (y2 + y1)
+            end
+            XS_broadened[j] = (1 / (Delta * sqrt(pi))) * integral
+        else
+            # Fallback: return unbroadened value via linear interpolation
+            XS_broadened[j] = interp_linear(E, E_raw, XS_raw)
+        end
+    end
+    
+    return XS_broadened
+end
+
